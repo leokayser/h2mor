@@ -1,8 +1,8 @@
 restart
 load "WalshVariety.m2"
 needsPackage "NumericSolutions"
+use QQ[s]
 
-P = QQ[s];
 
 -----------------
 -- Example 4.1 --
@@ -25,17 +25,6 @@ associatedPrimes saturate BB
 
 
 -----------------
--- Example 4.3 --
------------------
-
-c = (s+1)^3 - 1/2; d = -3*s^2 + 42*s + 21; factor(d/c) -- Simple poles -> no bad locus
-I = MEP(3,2, CD=>(c,d));
-dim I    -- 1 (projectively: 0)
-degree I -- 7
-use ring I
-solveSystem(I+ideal(a_2-1))
-
------------------
 -- Example 5.2 --
 -----------------
 
@@ -44,12 +33,12 @@ Mmatrix(3,1, CD => (c,d))
 
 I = MEP(3,1, CD => (c,d))
 degree I  -- 5
-use ring I
-solveSystem(I+ideal(a_1-1))
+solveSystem(I+ideal((ring I)_1-1))
 
 BB = saturate badLocus(3,1, C=>c)
-dim BB    -- 1 (projectively: 0)
-degree BB -- 1
+dim BB                            -- 1 (projectively: 0)
+degree BB                         -- 1
+degree saturate(I,sub(BB,ring I)) -- 4 = 5 - 1
 -- BB consists of the simple point corresponding to (s-2)
 
 
@@ -61,10 +50,10 @@ c = (s+2)^2*(s+3); d = (s-4)*(s-5); factor(d/c)
 
 I = MEP(3,2, CD => (c,d));
 degree I  -- 7
-use ring I
-solveSystem(I+ideal(a_2-1))
+solveSystem(I+ideal((ring I)_2-1))
 
 BB = saturate badLocus(3,2, C=>c)
-dim BB    -- 1 (projectively: 0)
-degree BB -- 2
+dim BB                            -- 1 (projectively: 0)
+degree BB                         -- 2
+degree saturate(I,sub(BB,ring I)) -- 5 = 7 - 2
 -- BB consists of one double point corresponding to (s-2)

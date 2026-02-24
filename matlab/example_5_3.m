@@ -17,7 +17,7 @@ sys = tf(d,c);
 
 %% Get and solve MEP:
 
-n = 1;
+n = 2;
 [mep, p, M] = getMep(sys,n);
 [sols,output] = macaulaylab(mep,30,posdim=true,verbose=true);
 sols.values
@@ -30,14 +30,14 @@ B = M(:, 2:end);
 syms q [N-1 1]
 p_bad = B*[1; q]
 system_bad = systemstruct(p_bad);
-eigV = [q]; % (Eliminate q)
+eigV = [q]; % (eliminate q)
 idx = zeros(length(eigV),1);
 for i = 1:length(eigV)
     idx(i) = find(system_bad.map == eigV(i));
 end
 mep_bad = conversion(system_bad,idx);
 
-% Solve mep for bad locus:
+% Solve mep for singular locus:
 [sols,output] = macaulaylab(mep_bad,30,posdim=true,verbose=true);
 sols.values
 

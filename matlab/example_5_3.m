@@ -1,4 +1,4 @@
-% This code reproduces the numerical results reported in Example 5.3 of 
+% This code reproduces the numerical results reported in Section 5 of 
 % the accompanying manuscript.
 
 % It uses the MacaulayLab package for constructing and solving 
@@ -17,7 +17,7 @@ sys = tf(d,c);
 
 %% Get and solve MEP:
 
-n = 2;
+n = 1;
 [mep, p, M] = getMep(sys,n);
 [sols,output] = macaulaylab(mep,30,posdim=true,verbose=true);
 sols.values
@@ -30,18 +30,18 @@ B = M(:, 2:end);
 syms q [N-1 1]
 p_bad = B*[1; q]
 system_bad = systemstruct(p_bad);
-eigV = [q]; % (eliminate q)
+eigV = [q]; % (Eliminate q)
 idx = zeros(length(eigV),1);
 for i = 1:length(eigV)
     idx(i) = find(system_bad.map == eigV(i));
 end
 mep_bad = conversion(system_bad,idx);
 
-% Solve mep for singular locus:
+% Solve mep for bad locus:
 [sols,output] = macaulaylab(mep_bad,30,posdim=true,verbose=true);
 sols.values
 
-%% Evaluate Proposition 4.2:
+%% Evaluate the solution count:
 nb_sols = 0;
 for j = 0:n
     nb_sols = nb_sols + nchoosek(N-n-1+j,j)*2^j;

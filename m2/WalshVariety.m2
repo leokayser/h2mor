@@ -1,4 +1,4 @@
--- Optimality conditions from Theorem 2.2.
+-- Optimality conditions from Theorem 2.2, more precisely equation (5).
 -- Note that we have dehomogenized using a_n = 1 (and c_N = 1), so the equations give an irreducible variety in affine space.
 Walsh = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 Walsh (ZZ,ZZ) := o -> (N,n) -> (
@@ -111,6 +111,6 @@ badLocus (ZZ,ZZ) := o -> (N,n) -> (
     return minors(N, Bmatrix);
 )
 
--- The count of critical points from Theorem 3.6
+-- The count of critical points from Theorem 3.10
 expectedDegree = method(TypicalValue => ZZ)
 expectedDegree (ZZ,ZZ) := (N,n) -> sum(for j from 0 to n list binomial(N-n-1+j,j)*2^j)

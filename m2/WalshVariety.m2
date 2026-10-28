@@ -1,21 +1,28 @@
 -- Optimality conditions from Theorem 2.2.
 -- Note that we have dehomogenized using a_n = 1 (and c_N = 1), so the equations give an irreducible variety in affine space.
-Walsh = method(TypicalValue => Ideal, Options => {Discrete => false})
+Walsh = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 Walsh (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-    R := QQ[a_0..a_(n-1),b_0..b_(n-1),c_0..c_(N-1),d_0..d_(N-1),g_0..g_(N-n-1)];
+    R := if instance(o.CD,Nothing) then (
+        --a := symbol a; b := symbol b; c := symbol c; d := symbol d; g := symbol g;
+        QQ[a_0..a_(n-1),b_0..b_(n-1),c_0..c_(N-1),d_0..d_(N-1),g_0..g_(N-n-1)]
+    ) else (
+        (coefficientRing ring o.CD#0)[a_0..a_(n-1),b_0..b_(n-1),g_0..g_(N-n-1)]
+    );
     Rs :=  R[s];
 
     A := sum(n,i->a_i*s^i) + s^n;
     B := sum(n,i->b_i*s^i);
-    C := sum(N,i->c_i*s^i) + s^N;
-    D := sum(N,i->d_i*s^i);
     G := sum(N-n,i->g_i*s^i);
+    (C,D) := if instance(o.CD,Nothing) then 
+        ( sum(N,i->c_i*s^i) + s^N, sum(N,i->d_i*s^i) )
+    else 
+        ( sub(o.CD#0,Rs), sub(o.CD#1,Rs) );
 
-    optimalityCondition = if o.Discrete then
-        A*D-B*C-(A(-s))^2*G
+    optimalityCondition := if o.Discrete then
+        A*D-B*C-(numerator(A(1/s)))^2*G
     else
-        A*D-B*C-(numerator(A(1/s)))^2*G;
+        A*D-B*C-(A(-s))^2*G;
 
     return sub(ideal last coefficients optimalityCondition, R);
 )
@@ -56,7 +63,7 @@ Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
     R := if instance(o.CD,Nothing) then
         QQ(monoid[a_0..a_n,c_0..c_N,d_0..d_(N-1)])
     else
-        QQ(monoid[a_0..a_n]);
+        (coefficientRing ring (o.CD#0))(monoid[a_0..a_n]);
 
     aa := transpose (vars R)_{0..n};
     atilde := if o.Discrete then
@@ -65,11 +72,11 @@ Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
         diagonalMatrix(for i to n list (-1)^i) * aa;
 
     (cc,dd) := if instance(o.CD,Nothing) then
-        (varvec c, varvec d)
+        (transpose (vars R)_{n+1..n+N+1}, transpose (vars R)_{n+N+2..n+2*N+1})
     else
         (coeffvec(o.CD#0), coeffvec(o.CD#1));
 
-    return (transpose T(aa,N) * dd) | (transpose T(cc,n)) | (transpose T(atilde,N) * transpose T(atilde,N-n));
+    return matrix entries ( (transpose T(aa,N) * dd) | (transpose T(cc,n)) | (transpose T(atilde,N) * transpose T(atilde,N-n)) );
 )
 
 -- The MEP from section 3.3 given as the ideal of minors of M(a;c,d)

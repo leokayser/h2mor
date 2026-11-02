@@ -8,8 +8,8 @@
 clc; clear all;
 
 %% Given model:
-d = [194509/432 - 73/432*sqrt(73), 1801/4];        % numerator
-c = [1, 37/6, 1];    % denominator, poles at -6 and -3 +/- 2i
+d = [11, 13];        % numerator
+c = poly([-7, -1/5]);    % denominator, poles at -6 and -3 +/- 2i
 N = length(c)-1;
 sys = tf(d,c);      % continuous time (Ts = 0)
 

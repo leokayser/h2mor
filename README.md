@@ -18,7 +18,7 @@ MATLAB/
   - getOptimalZeros.m, h2Error.m      optimal numerator and H2 error for a fixed denominator
   - expectedDegree.m                  count of Theorem 3.10
   - symToMep.m, tfCoefficients.m,
-  - getToeplitz.m                     internal helpers
+    getToeplitz.m                     internal helpers
   - example_5_*.m                     examples of Section 5
 Macaulay2/
   - WalshVariety.m2                   Walsh variety, MEP and bad locus as ideals

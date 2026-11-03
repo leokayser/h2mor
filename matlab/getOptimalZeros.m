@@ -1,20 +1,23 @@
-function b = getOptimalZeros(c,d,a,isContinuous)
-    n = length(a)-1;
-    N = length(c)-1;
+function b = getOptimalZeros(sys, a)
+%GETOPTIMALZEROS  Optimal numerator for a fixed reduced denominator.
+%   b = getOptimalZeros(sys, a) returns the numerator b that minimizes the
+%   H2 error ||H - b/a|| for the given stable denominator a, by solving the
+%   linear system (21),
+%       [T_n(c)'  T_N(atilde)'] [b; q] = T_N(a)' d.
+%   Its coefficient matrix is the Sylvester matrix of c and atilde. The
+%   polynomials a and b are row vectors in descending powers, as in tf.
 
-    Td = getToeplitz(d,n+1);
-    Tc = getToeplitz(c,n);
+    [c, d] = tfCoefficients(sys);
+    N = numel(d);
+    a = flip(a(:));                       % ascending order, as in the paper
+    n = numel(a) - 1;
 
-    if isContinuous
-        a_t = zeros(size(a));
-        for i = 1:length(a)
-            a_t(i) = a(i)*(-1)^(i-1);
-        end
-        Ta_t = getToeplitz(a_t,N);
+    if sys.Ts == 0
+        atilde = a .* (-1).^(0:n).';      % atilde(s) = a(-s)
     else
-        Ta_t = getToeplitz(flip(a),N);
+        atilde = flip(a);                 % atilde(z) = z^n a(1/z)
     end
 
-    tmp = [Tc.', Ta_t.']\(Td.'*a);
-    b = tmp(1:n);
+    x = [getToeplitz(c, n).', getToeplitz(atilde, N).'] \ (getToeplitz(a, N).' * d);
+    b = flip(x(1:n)).';
 end

@@ -1,50 +1,37 @@
-% This code reproduces the numerical results reported in Section 5 of 
-% the accompanying manuscript.
+% Example 5.3 (non-empty bad locus).
+% First-order approximation (n = 1) of
+%     H(s) = (s - 4)(s - 5) / ((s + 2)^2 (s + 3)),
+% whose denominator has a double root.
+% Expected: D consists of 5 points. One of them, a = s - 2, forms the bad
+% locus B, which leaves 4 critical points (Proposition 4.4).
+%
+% Requires MacaulayLab (https://www.macaulaylab.net) on the MATLAB path.
 
-% It uses the MacaulayLab package for constructing and solving 
-% multiparameter eigenvalue problems (MEPs). MacaulayLab is available 
-% for download at: https://www.macaulaylab.net
+clear; clc;
 
-%% Initialize problem setup:
-
-clc; clear all;
-
-% Given model:
-c = poly([-2, -2, -3]);
 d = poly([4, 5]);
-N = length(c)-1;
-sys = tf(d,c); 
-
-%% Get and solve MEP:
-
+c = poly([-2, -2, -3]);
+sys = tf(d, c);
+N = numel(c) - 1;
 n = 1;
-[mep, p, M] = getMep(sys,n);
-[sols,output] = macaulaylab(mep,30,posdim=true,verbose=true);
-sols.values
 
-%% Investigate bad locus:
+dEnd = 30;       % maximum degree for macaulaylab
 
+%% Determinantal variety D
+[mep, ~, M] = getMep(sys, n);
+sols = macaulaylab(mep, dEnd, posdim=true, verbose=true);
+disp('Points of D, as a1 in a(s) = s + a1:')
+disp(sols.values)
+
+%% Bad locus B: points where B(a,c), the last N columns of M(a,c,d), drops rank
+% A null vector of B(a,c) is normalized as (1; q).
 B = M(:, 2:end);
+q = sym('q', [N-1, 1]);
+mepBad = symToMep(B * [1; q], q);
+solsBad = macaulaylab(mepBad, dEnd, posdim=true, verbose=true);
+disp('Points of B:')
+disp(solsBad.values)
 
-% Trick to reform symbolic matrix polynomial into MEP format:
-syms q [N-1 1]
-p_bad = B*[1; q]
-system_bad = systemstruct(p_bad);
-eigV = [q]; % (Eliminate q)
-idx = zeros(length(eigV),1);
-for i = 1:length(eigV)
-    idx(i) = find(system_bad.map == eigV(i));
-end
-mep_bad = conversion(system_bad,idx);
-
-% Solve mep for bad locus:
-[sols,output] = macaulaylab(mep_bad,30,posdim=true,verbose=true);
-sols.values
-
-%% Evaluate the solution count:
-nb_sols = 0;
-for j = 0:n
-    nb_sols = nb_sols + nchoosek(N-n-1+j,j)*2^j;
-end
-nb_sols = nb_sols - nchoosek(N-2, n-1); % Correction term
-disp(['N,n: ',mat2str(N),',',mat2str(n),' --> ',mat2str(nb_sols)])
+%% Counts
+fprintf('Generic count (14): %d; upper bound from Proposition 4.4: %d.\n', ...
+    expectedDegree(N, n), expectedDegree(N, n) - nchoosek(N-2, n-1));

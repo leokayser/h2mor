@@ -1,74 +1,59 @@
-% This code reproduces the numerical results reported in Section 5 of 
-% the accompanying manuscript.
+% Example 5.2 (discrete time).
+% Second-order approximation (n = 2) of the sixth-order discrete-time model
+% (20), from Lagauw et al. (2023, Example 2).
+% Expected: 49 critical points, as predicted by Theorem 3.10, of which 11 are
+% real and 5 correspond to stable models. The second part computes the
+% contour plot of Figure 1.
+%
+% Requires MacaulayLab (https://www.macaulaylab.net) on the MATLAB path.
 
-% It uses the MacaulayLab package for constructing and solving 
-% multiparameter eigenvalue problems (MEPs). MacaulayLab is available 
-% for download at: https://www.macaulaylab.net
+clear; clc;
 
-%% Initialize problem setup:
-
-clc; clear all; clf; 
-
-% Construct H:
-c = flip([1; -1.2024; 2.3675; -2.0039; 2.2337; -1.0420; 0.8513]);
-d = flip([0.0448; 0.2368; 0.0013; 0.0211; 0.2250; 0.0219]);
-N = length(c)-1;
+d = [0.0448, 0.2368, 0.0013, 0.0211, 0.2250, 0.0219];
+c = [1, -1.2024, 2.3675, -2.0039, 2.2337, -1.0420, 0.8513];
+sys = tf(d, c, -1);
+N = numel(c) - 1;
 n = 2;
-isContinuous = false;
-G = @(z) polyval(flip(d),z)./polyval(flip(c),z);
 
-% Compute H2-norm of H:
-fun = @(w) (G(exp(1i*w)).*conj(G(exp(1i*w))));
-G_norm = sqrt(1/(2*pi)*integral(@(t) fun(t),-pi,pi))
+tol  = 1e-6;     % tolerance for real solutions
+dEnd = 30;       % maximum degree for macaulaylab
 
-%% Compute residuals over grid of feasible (a0, a1)-values
+%% Critical points
+mep = getMep(sys, n);
+sols = macaulaylab(mep, dEnd, posdim=true, verbose=true);
+A = [ones(size(sols.values, 1), 1), sols.values];    % one denominator a per row
 
-% Create grid:
-NbPoints = 50;
-a0 = linspace(-5, 5, NbPoints);
-a1 = linspace(-5, 5, NbPoints);
-[X,Y] = meshgrid(a1,a0);
+isReal = all(abs(imag(A)) < tol, 2);
+isStab = false(size(isReal));
+for k = find(isReal).'
+    isStab(k) = isstable(tf(1, real(A(k, :)), -1));
+end
+fprintf('%d critical points (Theorem 3.10: %d), %d real, %d stable.\n', ...
+    size(A, 1), expectedDegree(N, n), nnz(isReal), nnz(isStab));
 
-% Iterate over feasible values:
-Z = zeros(length(a0), length(a1));
-for i = 1:length(a0)
-    for j = 1:length(a1)
-        a = [a0(i);a1(j);1];
+%% Contour plot of Figure 1
+% H2 error over the stable reduced denominators a(z) = z^2 + a1 z + a0,
+% each with its optimal numerator b.
+nGrid = 50;
+margin = 1e-6;
+a1 = linspace(-2, 2, nGrid);
+a0 = linspace(-1, 1, nGrid);
 
-        % Only use stable models:
-        if max(abs(roots(flip(a)))) > 1
-            Z(i,j) = NaN;
-            continue
+J = nan(nGrid);
+for i = 1:nGrid
+    for j = 1:nGrid
+        a = [1, a1(j), a0(i)];
+        if max(abs(roots(a))) < 1 - margin
+            J(i, j) = h2Error(sys, a);
         end
-
-        % Compute optimal b:
-        b = getOptimalZeros(c,d,a,isContinuous);
-
-        % Compute cost function value:
-        Gr = @(z) polyval(flip(b),z)./polyval(flip(a),z);
-        fun = @(w) (Gr(exp(1i*w))-G(exp(1i*w))).*conj(Gr(exp(1i*w))-G(exp(1i*w))); 
-        Z(i,j) = sqrt(1/(2*pi)*integral(@(t) fun(t),-pi,pi));
     end
 end
+fprintf('H2 norm of H: %.4f\n', norm(sys));
 
-%% Plot contours:
-figure(1);
-levels = [0.86, 0.88, 0.9, 0.94, 0.98, 1, 1.04,...
-    1.08, 1.1, 1.12, 1.16, 1.2, 1.24, 1.26, 1.27, 1.28, 1.285, 1.289, 1.291, 1.2915, 1.2918];
-contour(X,Y,Z,levels)
+levels = [0.86, 0.88, 0.9, 0.94, 0.98, 1, 1.04, 1.08, 1.1, 1.12, 1.16, ...
+          1.2, 1.24, 1.26, 1.27, 1.28, 1.285, 1.289, 1.291, 1.2915, 1.2918];
+contour(a1, a0, J, levels)
 colormap jet
 colorbar
-
-%% Construct and solve MEP:
-
-sys = tf(d.',c.',-1); 
-[mep, p, M] = getMep(sys,n)
-[sols,output] = macaulaylab(mep,30,posdim=true,verbose=true);
-sols.values
-
-%% Evaluate the solution count:
-nb_sols = 0;
-for j = 0:n
-    nb_sols = nb_sols + nchoosek(N-n-1+j,j)*2^j;
-end
-disp(['N,n: ',mat2str(N),',',mat2str(n),' --> ',mat2str(nb_sols)])
+xlabel('a_1')
+ylabel('a_0')

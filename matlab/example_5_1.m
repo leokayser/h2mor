@@ -1,49 +1,49 @@
-% This code reproduces the numerical results reported in Section 5 of 
-% the accompanying manuscript.
+% Example 5.1 (continuous time).
+% Optimal first-order approximation (n = 1) of the third-order model
+%     H(s) = (s^2 + 9s - 10) / (s^3 + 12s^2 + 49s + 78),
+% with poles -6 and -3 +/- 2i, from Agudelo et al. (2021).
+% Expected: D consists of 5 reduced points; the two real points with a
+% stable denominator give the local minimizers 1.2799/(s + 9.6796), which
+% is the global minimizer, and -0.0437/(s + 0.2671).
+%
+% Requires MacaulayLab (https://www.macaulaylab.net) on the MATLAB path.
 
-% It uses the MacaulayLab package for constructing and solving 
-% multiparameter eigenvalue problems (MEPs). MacaulayLab is available 
-% for download at: https://www.macaulaylab.net
+clear; clc;
 
-clc; clear all;
-
-%% Given model:
-% Paper: Globally Optimal H2-Norm Model Reduction: A Numerical
-% Linear Algebra Approach, O.M. Agudelo, V. Christof, B. De Moor
-% (2021) - IFAC-PapersOnLine.
-d = [1, 9, -10];        % numerator
-c = [1, 12, 49, 78];    % denominator, poles at -6 and -3 +/- 2i
-N = length(c)-1;
-sys = tf(d,c);      % continuous time (Ts = 0)
-
-%% Get and solve MEP:
+d = [1, 9, -10];
+c = [1, 12, 49, 78];
+sys = tf(d, c);
+N = numel(c) - 1;
 n = 1;
-[mep, p, M] = getMep(sys,n);
-roots(flip(coeffs(det(M))))
-[sols,output] = macaulaylab(mep,30,posdim=true,verbose=true);
-sols.values
 
-%% Evaluate the solution count:
-nb_sols = 0;
-for j = 0:n
-    nb_sols = nb_sols + nchoosek(N-n-1+j,j)*2^j;
-end
-disp(['N,n: ',mat2str(N),',',mat2str(n),' --> ',mat2str(nb_sols)])
+tol  = 1e-6;     % tolerance for real solutions
+dEnd = 30;       % maximum degree for macaulaylab
 
-%% Plot the optimization landscape:
-% Create grid:
-NbPoints = 100;
-a0 = linspace(0.05, 12, NbPoints);
-H = @(s) polyval(d,s)./polyval(c,s);
+%% Critical points
+[mep, ~, M] = getMep(sys, n);
 
-% Iterate over feasible values:
-costs = zeros(1,length(a0));
-for i = 1:length(a0)
-    a = [1,a0(i)];
-    b = getOptimalZeros(flip(c).',flip(d).',flip(a).',true);
-    Hr = @(s) polyval(b,s)./polyval(a,s);
-    fun = @(w) (H(1i*w)-Hr(1i*w)).*conj(H(1i*w)-Hr(1i*w)); 
-    costs(i) = sqrt(1/(2*pi)*integral(@(t) fun(t),-inf,inf));
+% For n = 1, M(a,c,d) is square and D is the set of roots of its
+% determinant (cf. Example 3.3), here in terms of a(s) = s + a1.
+disp('Roots of det M(a,c,d):')
+disp(roots(sym2poly(det(M))))
+
+sols = macaulaylab(mep, dEnd, posdim=true, verbose=true);
+A = [ones(size(sols.values, 1), 1), sols.values];    % one denominator a per row
+fprintf('%d critical points; Theorem 3.10 predicts %d.\n', size(A, 1), expectedDegree(N, n));
+
+%% Reduced models for the real critical points with a stable denominator
+for k = find(all(abs(imag(A)) < tol, 2)).'
+    a = real(A(k, :));
+    if isstable(tf(1, a))
+        b = getOptimalZeros(sys, a);
+        fprintf('Hhat = %.4f/(s + %.4f),  H2 error %.4f\n', b, a(2), h2Error(sys, a));
+    end
 end
 
-plot(a0,costs)
+%% H2 error over the reduced denominators a(s) = s + alpha
+alpha = linspace(0.05, 12, 100);
+J = arrayfun(@(x) h2Error(sys, [1, x]), alpha);
+
+plot(alpha, J)
+xlabel('a')
+ylabel('H_2 error')

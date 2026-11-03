@@ -1,48 +1,39 @@
-function [mep,p,M] = getMep(sys,m)
-    
-    % Parse input:
-    c = sys.Denominator{1}(2:end);
-    d = sys.Numerator{1}(2:end);
-    n = length(d);
+function [mep, eqs, M] = getMep(sys, n)
+%GETMEP  MEP formulation of the critical equations of H2 model reduction.
+%   [mep, eqs, M] = getMep(sys, n) returns, for a SISO tf object sys and a
+%   reduced order n, the critical equations (6)
+%       T_N(a)' d - T_n(c)' b - T_N(atilde)' T_{N-n}(atilde)' g = 0
+%   as the symbolic vector eqs, the matrix M(a,c,d) of (9), and the
+%   corresponding MacaulayLab MEP. The model is continuous-time if
+%   sys.Ts == 0 and discrete-time otherwise (Section 4.2).
+%
+%   The reduced denominator is monic, a(s) = s^n + a1 s^(n-1) + ... + an,
+%   so each eigentuple (a1, ..., an) gives the denominator [1, a1, ..., an]
+%   in the descending order used by tf. The bad locus is described by
+%   B(a,c) = M(:, 2:end).
+
+    [c, d] = tfCoefficients(sys);
+    N = numel(d);
     isContinuous = (sys.Ts == 0);
 
-    % Compose Ta coefficient matrix:
-    a_sym = sym('a',[1, m]); % Symbolic coefficients
-    a = [1,a_sym];
-    Ta = getToeplitz(flip(a), n);
+    % Unknowns. a and b are indexed in descending order, as in tf; the
+    % vectors below hold their coefficients in ascending order, as in the paper.
+    a = flip([1, sym('a', [1 n])]).';
+    b = flip(sym('b', [1 n])).';
+    g = sym('g', [N-n, 1]);
 
-   
-    % Compose Tc coefficient matrix:
-    tmp = [1, c];
-    Tc = getToeplitz(flip(tmp), m);
-
-    % Compose Ta_tilde matrix:
     if isContinuous
-        tmp = flip(a);
-        for i = 1:m+1
-            tmp(i) = (-1)^(i-1) * tmp(i);
-        end
+        atilde = a .* (-1).^(0:n).';    % atilde(s) = a(-s)
     else
-        tmp = a;
+        atilde = flip(a);               % atilde(z) = z^n a(1/z)
     end
-    Tat = getToeplitz(tmp, n);
-    Tatt = getToeplitz(tmp, n-m);
-    
-    syms b [1 m]
-    syms g [1 n-m]
-    
-    % Get system of equations:
-    p = (Ta).'*flip(d).' - (Tc).'*flip(b).' - (Tat).'*(Tatt).'*g.';
-    M = vpa([(Ta).'*flip(d).', (Tc).', (Tat).'*(Tatt).']);
-  
-    % Compose MEP:
-    system = systemstruct(p);
-    eigV = [flip(b), g];
 
-    idx = zeros(length(eigV),1);
-    for i = 1:length(eigV)
-        idx(i) = find(system.map == eigV(i));
-    end
-    mep = conversion(system,idx);
+    % Critical equations (6) and the matrix M(a,c,d) of (9)
+    M = [getToeplitz(a, N).' * d, ...
+         getToeplitz(c, n).', ...
+         getToeplitz(atilde, N).' * getToeplitz(atilde, N-n).'];
+    eqs = M * [1; -b; -g];
+
+    mep = symToMep(eqs, [b; g]);
+    M = vpa(M);
 end
-

@@ -3,26 +3,33 @@
 Walsh = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 Walsh (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
+    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
     R := if instance(o.CD,Nothing) then (
-        --a := symbol a; b := symbol b; c := symbol c; d := symbol d; g := symbol g;
-        QQ[a_0..a_(n-1),b_0..b_(n-1),c_0..c_(N-1),d_0..d_(N-1),g_0..g_(N-n-1)]
+        QQ(monoid[var("a",n),var("b",n),var("c",N),var("d",N),var("g",N-n)])
     ) else (
-        (coefficientRing ring o.CD#0)[a_0..a_(n-1),b_0..b_(n-1),g_0..g_(N-n-1)]
+        (coefficientRing ring o.CD#0)(monoid[var("a",n),var("b",n),var("g",N-n)])
     );
-    Rs :=  R[s];
+    Rs :=  R(monoid[s]); s := Rs_0;
+    L := gens R;
 
+    a := take(L, {0, n-1});
     A := sum(n,i->a_i*s^i) + s^n;
-    B := sum(n,i->b_i*s^i);
-    G := sum(N-n,i->g_i*s^i);
-    (C,D) := if instance(o.CD,Nothing) then 
-        ( sum(N,i->c_i*s^i) + s^N, sum(N,i->d_i*s^i) )
-    else 
-        ( sub(o.CD#0,Rs), sub(o.CD#1,Rs) );
+    Atilde := if o.Discrete then sum(n,i->a_i*s^(n-i)) + 1 else A(-s);
 
-    optimalityCondition := if o.Discrete then
-        A*D-B*C-(numerator(A(1/s)))^2*G
-    else
-        A*D-B*C-(A(-s))^2*G;
+    b := take(L, {n, 2*n-1});
+    B := sum(n,i->b_i*s^i);
+
+    (C,D) := if instance(o.CD,Nothing) then (
+        c := take(L, {2*n, 2*n+N-1});
+        d := take(L, {2*n+N, 2*n+2*N-1});
+        (sum(N,i->c_i*s^i) + s^N, sum(N,i->d_i*s^i))
+    ) else 
+        (sub(o.CD#0,Rs), sub(o.CD#1,Rs));
+
+    g := take(L, -(N-n));
+    G := sum(N-n,i->g_i*s^i);
+
+    optimalityCondition := A*D - B*C - Atilde^2*G;
 
     return sub(ideal last coefficients optimalityCondition, R);
 )
@@ -40,12 +47,12 @@ T (Matrix,ZZ) := (aa,k) -> ( -- Expects aa to be a vector (= 1x(r+1) or (r+1)x1 
     return matrix Toep;
 )
 
-varvec := method(TypicalValue => Matrix)
-varvec (IndexedVariableTable) := y -> (
-    assert instance(y, IndexedVariableTable);
-    vs := select(values y, v -> instance(class v,PolynomialRing));
-    return matrix apply(vs, v -> {v});
-)
+--varvec := method(TypicalValue => Matrix)
+--varvec (IndexedVariableTable) := y -> (
+--    assert instance(y, IndexedVariableTable);
+--    vs := select(values y, v -> instance(class v,PolynomialRing));
+--    return matrix apply(vs, v -> {v});
+--)
 
 coeffvec := method(TypicalValue => Matrix)
 coeffvec (RingElement) := f -> (
@@ -59,11 +66,12 @@ coeffvec (RingElement) := f -> (
 Mmatrix = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-
-    R := if instance(o.CD,Nothing) then
-        QQ(monoid[a_0..a_n,c_0..c_N,d_0..d_(N-1)])
-    else
-        (coefficientRing ring (o.CD#0))(monoid[a_0..a_n]);
+    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
+    R := if instance(o.CD,Nothing) then (
+        QQ(monoid[var("a",n+1),var("c",N+1),var("d",N)])
+    ) else (
+        (coefficientRing ring o.CD#0)(monoid[var("a",n+1)])
+    );
 
     aa := transpose (vars R)_{0..n};
     atilde := if o.Discrete then
@@ -91,11 +99,12 @@ MEP (ZZ,ZZ) := o -> (N,n) -> minors(N+1, Mmatrix(N,n, Discrete=>o.Discrete, CD=>
 badLocus = method(TypicalValue => Ideal, Options => {Discrete => false, C => null})
 badLocus (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-
-    R := if instance(o.C,Nothing) then
-        QQ(monoid[a_0..a_n,c_0..c_N])
-    else
-        QQ(monoid[a_0..a_n]);
+    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
+    R := if instance(o.C,Nothing) then (
+        QQ(monoid[var("a",n+1),var("c",N+1)])
+    ) else (
+        (coefficientRing ring o.C)(monoid[var("a",n+1)])
+    );
 
     aa := transpose (vars R)_{0..n};
     aatilde := if o.Discrete then
@@ -103,7 +112,7 @@ badLocus (ZZ,ZZ) := o -> (N,n) -> (
     else
         diagonalMatrix(for i to n list (-1)^i) * aa;
     cc := if instance(o.C,Nothing) then
-        varvec c
+        transpose (vars R)_{n+1..N+1}
     else
         coeffvec(o.C);
 

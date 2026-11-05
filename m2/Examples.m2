@@ -16,10 +16,10 @@ degree BB -- 1
 
 
 c = (s+1)^2*(s+2)^2; factor c
-BB = badLocus(4,3,C=>c);
+BB = saturate badLocus(4,3,C=>c);
 dim BB    -- 2 (projectively: 1)
 degree BB -- 1
-associatedPrimes saturate BB
+associatedPrimes BB
 -- BB consists of the projective line of degree 3 multiples of (s-1)(s-2) 
 -- with two embedded points corresponding to (s-1)²(s-2) and (s-1)(s-2)²  
 
@@ -71,7 +71,7 @@ BB = saturate badLocus(3,2, C=>c)
 dim BB                            -- 1 (projectively: 0)
 degree BB                         -- 2
 degree saturate(I,sub(BB,ring I)) -- 5 = 7 - 2
--- BB in DD consists of one double point corresponding to (s-2)
+-- BB in DD consists of one double point corresponding to (s-2)(s-3)
 
 
 -----------------

@@ -1,9 +1,13 @@
+-- list of indexed variables name_0, ..., name_(k-1)
+var := (name,k) -> apply(k, i -> (getSymbol name)_i);
+
+
 -- Optimality conditions from Theorem 2.2, more precisely equation (5).
 -- Note that we have dehomogenized using a_n = 1 (and c_N = 1), so the equations give an irreducible variety in affine space.
 Walsh = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 Walsh (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
+    if not instance(o.CD,Nothing) then assert(first degree o.CD#0 <= N and first degree o.CD#1 < N);
     R := if instance(o.CD,Nothing) then (
         QQ(monoid[var("a",n),var("b",n),var("c",N),var("d",N),var("g",N-n)])
     ) else (
@@ -47,26 +51,21 @@ T (Matrix,ZZ) := (aa,k) -> ( -- Expects aa to be a vector (= 1x(r+1) or (r+1)x1 
     return matrix Toep;
 )
 
---varvec := method(TypicalValue => Matrix)
---varvec (IndexedVariableTable) := y -> (
---    assert instance(y, IndexedVariableTable);
---    vs := select(values y, v -> instance(class v,PolynomialRing));
---    return matrix apply(vs, v -> {v});
---)
-
+-- Column vector of the coefficients of f of degree 0, ..., k-1 (padded with zeros)
 coeffvec := method(TypicalValue => Matrix)
-coeffvec (RingElement) := f -> (
+coeffvec (RingElement,ZZ) := (f,k) -> (
+    assert(numgens ring f == 1 and first degree f < k);
     t := (ring f)_0;
-    return matrix(for i to (degree f)#0 list {coefficient(t^i,f)});
+    return matrix(for i to k-1 list {coefficient(t^i,f)});
 )
 
 -- Matrix M(a;c,d) from section 3.3
 -- Option: Discrete (false (default) or true): Switches between discrete or continuous time
 --         CD (null (default) or pair (c,d) of polynomials): Whether to use a specific data point H = d/c
-Mmatrix = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
+Mmatrix = method(TypicalValue => Matrix, Options => {Discrete => false, CD => null})
 Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
+    if not instance(o.CD,Nothing) then assert(first degree o.CD#0 <= N and first degree o.CD#1 < N);
     R := if instance(o.CD,Nothing) then (
         QQ(monoid[var("a",n+1),var("c",N+1),var("d",N)])
     ) else (
@@ -82,7 +81,7 @@ Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
     (cc,dd) := if instance(o.CD,Nothing) then
         (transpose (vars R)_{n+1..n+N+1}, transpose (vars R)_{n+N+2..n+2*N+1})
     else
-        (coeffvec(o.CD#0), coeffvec(o.CD#1));
+        (coeffvec(o.CD#0,N+1), coeffvec(o.CD#1,N));
 
     return matrix entries ( (transpose T(aa,N) * dd) | (transpose T(cc,n)) | (transpose T(atilde,N) * transpose T(atilde,N-n)) );
 )
@@ -93,13 +92,13 @@ Mmatrix (ZZ,ZZ) := o -> (N,n) -> (
 MEP = method(TypicalValue => Ideal, Options => {Discrete => false, CD => null})
 MEP (ZZ,ZZ) := o -> (N,n) -> minors(N+1, Mmatrix(N,n, Discrete=>o.Discrete, CD=>o.CD)) ;
 
--- The bad locus from section 3.3 given as the ideal of minor of B(a;c)
+-- The bad locus from section 3.3 given as the ideal of maximal minors of B(a;c)
 -- Option: Discrete (false (default) or true): Switches between discrete or continuous time
 --         C (null (default) or polynomial c): Whether to use a specific data point c
 badLocus = method(TypicalValue => Ideal, Options => {Discrete => false, C => null})
 badLocus (ZZ,ZZ) := o -> (N,n) -> (
     assert(N>n);
-    var := (name,k) -> apply(k, i -> (getSymbol name)_i); -- variables "name" from 0 to k-1
+    if not instance(o.C,Nothing) then assert(first degree o.C <= N);
     R := if instance(o.C,Nothing) then (
         QQ(monoid[var("a",n+1),var("c",N+1)])
     ) else (
@@ -108,13 +107,13 @@ badLocus (ZZ,ZZ) := o -> (N,n) -> (
 
     aa := transpose (vars R)_{0..n};
     aatilde := if o.Discrete then
-        matrix(for i to n list {a_(n-i)})
+        matrix(for i to n list {aa_(n-i,0)})
     else
         diagonalMatrix(for i to n list (-1)^i) * aa;
     cc := if instance(o.C,Nothing) then
-        transpose (vars R)_{n+1..N+1}
+        transpose (vars R)_{n+1..n+N+1}
     else
-        coeffvec(o.C);
+        coeffvec(o.C,N+1);
 
     Bmatrix := (transpose T(cc,n)) | (transpose T(aatilde,N) * transpose T(aatilde,N-n));
     return minors(N, Bmatrix);

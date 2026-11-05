@@ -20,7 +20,7 @@ MATLAB/
   - symToMep.m, tfCoefficients.m,
     getToeplitz.m                     internal helpers
   - example_5_*.m                     examples of Section 5
-Macaulay2/
+m2/
   - WalshVariety.m2                   Walsh variety, MEP and bad locus as ideals
   - Examples.m2                       Examples 4.1, 5.1, 5.3, 5.4, 5.5 and 5.8
 ```
@@ -49,7 +49,7 @@ In MATLAB, MEPs are solved numerically with MacaulayLab, whereas Macaulay2 code 
 - `b = getOptimalZeros(sys, a)` and `J = h2Error(sys, a)`: the optimal numerator (21) and the $\mathcal{H}_2$ error for a fixed stable denominator `a`.
 - `expectedDegree(N, n)`: the count (14).
 
-**Macaulay2** (`WalshVariety.m2`). The functions take the orders `(N, n)`, the option `Discrete` (default `false`) and specific data `CD => (c, d)` (`C => c` for `badLocus`).
+**Macaulay2** (`WalshVariety.m2`; run `Examples.m2` from inside `m2/` so that `load "WalshVariety.m2"` finds the file). The functions take the orders `(N, n)`, the option `Discrete` (default `false`) and specific data `CD => (c, d)` (`C => c` for `badLocus`).
 
 - `Walsh(N, n)`: ideal of the Walsh variety $\mathcal{W}$ (Definition 3.1), in the chart $a_n = c_N = 1$.
 - `Mmatrix(N, n)` and `MEP(N, n)`: the matrix $M(a,c,d)$ and the ideal of its maximal minors, which defines $\mathcal{D}$.

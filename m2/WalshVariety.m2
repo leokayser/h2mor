@@ -38,20 +38,18 @@ Walsh (ZZ,ZZ) := o -> (N,n) -> (
     return sub(ideal last coefficients optimalityCondition, R);
 )
 
-vecToRingList := method(TypicalValue => Sequence)
-vecToRingList (Matrix) := yy -> (ring yy, flatten entries yy)
-
 T := method(TypicalValue => Matrix) 
 T (Matrix,ZZ) := (aa,k) -> ( -- Expects aa to be a vector (= 1x(r+1) or (r+1)x1 matrix)
     assert (k >= 0);
-    (R,a) := vecToRingList(aa);
+    R := ring aa;
+    a := flatten entries aa;
     r := #a - 1;
     Toep := mutableMatrix(R, k, r+k);
     for i from 0 to k-1 do for j from 0 to r do Toep_(i,i+j) = a#j;
     return matrix Toep;
 )
 
--- Column vector of the coefficients of f of degree 0, ..., k-1 (padded with zeros)
+-- Column vector of the coefficients of f of degree 0,...,k-1 (padded with zeros)
 coeffvec := method(TypicalValue => Matrix)
 coeffvec (RingElement,ZZ) := (f,k) -> (
     assert(numgens ring f == 1 and first degree f < k);
